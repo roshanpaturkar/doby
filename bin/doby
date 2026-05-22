@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# doby — a house-elf for your terminal.
+#
+# Usage:
+#   doby                       # drop into Doby's chat
+#   doby chat -q "hi"          # one-shot query mode
+#   doby model                 # provider/model picker (OAuth flow lives here)
+#   doby <any hermes subcmd>   # forwards to hermes
+#
+# Configuration:
+#   DOBY_DIR  — directory containing docker-compose.yml + data/
+#               (auto-baked by scripts/install.sh; override via env if needed)
+
+set -euo pipefail
+
+DOBY_DIR="${DOBY_DIR:-__DOBY_DIR__}"
+COMPOSE_FILE="${DOBY_DIR}/docker-compose.yml"
+
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+  echo "doby: compose file not found at $COMPOSE_FILE" >&2
+  echo "      Re-run scripts/install.sh, or set DOBY_DIR to the repo path." >&2
+  exit 1
+fi
+
+# Idempotently bring the container up (no-op if already running).
+HERMES_UID="$(id -u)" HERMES_GID="$(id -g)" \
+  docker compose -f "$COMPOSE_FILE" up -d >/dev/null
+
+exec docker compose -f "$COMPOSE_FILE" exec doby hermes "$@"

@@ -1,0 +1,37 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly canary build — catches upstream Hermes drift before users do.
+    - cron: '0 12 * * 1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned Hermes ref
+        id: pin
+        run: echo "HERMES_REF=$(cat HERMES_VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        env:
+          HERMES_UID: "1000"
+          HERMES_GID: "1000"
+          HERMES_REF: ${{ steps.pin.outputs.HERMES_REF }}
+        run: docker compose build
+
+      - name: Verify Doby patch landed
+        run: |
+          docker run --rm --entrypoint /bin/bash doby-agent:local -c \
+            'grep -q "    compact: bool = None," /opt/hermes/cli.py' \
+          || { echo "::error::Doby compact patch missing — upstream drift?"; exit 1; }
+
+      - name: Verify hermes binary works
+        run: |
+          docker run --rm --entrypoint /opt/hermes/.venv/bin/hermes doby-agent:local --version

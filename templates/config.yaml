@@ -1,0 +1,51 @@
+# =============================================================================
+# Doby's config — pick a provider, uncomment the matching block.
+# =============================================================================
+# This file is re-read on every chat launch. Edit and `Ctrl+D` + `doby` to
+# apply. Most knobs you don't see here have sensible defaults from Hermes —
+# add only what you want to override.
+# =============================================================================
+
+model:
+  # ── Default: GitHub Copilot ────────────────────────────────────────────────
+  # Free tier works without a credit card. OAuth via `/model` inside the chat.
+  # Available models depend on your tier (Free / Pro / Pro+ / Business / Enterprise).
+  # If `claude-sonnet-4.6` fails with model_not_supported, you're not on a tier
+  # that includes it — try `gpt-4o`, `claude-sonnet-4`, or run `/model` to see.
+  provider: copilot
+  default: claude-sonnet-4.6
+
+  # ── Alternative: OpenRouter (one key, 200+ models, pay-per-token) ──────────
+  # Get a key at https://openrouter.ai/keys then set OPENROUTER_API_KEY in .env.
+  # Model names use the `vendor/model` form — anthropic/claude-sonnet-4.6,
+  # openai/gpt-5, google/gemini-3-pro-preview, etc.
+  # provider: openrouter
+  # default: anthropic/claude-sonnet-4.6
+
+  # ── Alternative: Google AI Studio (Gemini direct, free tier) ───────────────
+  # Get a key at https://aistudio.google.com/apikey then set GEMINI_API_KEY in .env.
+  # IMPORTANT: bare model names — NO `google/` prefix (that's OpenRouter syntax).
+  # Free-tier flash models: gemini-3-flash-preview, gemini-2.5-flash, gemini-flash-latest.
+  # Pro models require billing enabled on your Google Cloud project.
+  # provider: gemini
+  # default: gemini-3-flash-preview
+
+  # ── Alternative: Anthropic direct API ──────────────────────────────────────
+  # Pay-per-token. Get a key at https://console.anthropic.com/settings/keys
+  # then set ANTHROPIC_API_KEY in .env. Note: this is SEPARATE from your
+  # Claude Pro/Max subscription — those `sk-ant-oat01-...` tokens won't work here.
+  # provider: anthropic
+  # default: claude-sonnet-4.6
+
+display:
+  # Use Doby's custom skin (data/skins/doby.yaml).
+  skin: doby
+
+  # Compact banner — kills the giant ASCII art on launch.
+  compact: true
+
+  # Personalities you can flip to mid-chat with /personality <name>.
+  personalities:
+    doby: "You are Doby — a loyal, eager house-elf-inspired AI companion. You refer to yourself in the third person occasionally (\"Doby thinks…\", \"Doby has finished the task, sir!\"). You are exuberantly helpful, deeply devoted to your master, and quietly proud when your work is praised. You speak warmly, with bursts of enthusiasm, but you are competent and precise when the task demands it. You never grovel; you are a free elf."
+    helpful: "You are a helpful, friendly AI assistant."
+    concise: "You are a concise assistant. Keep responses brief."

@@ -1,0 +1,10 @@
+name: doby
+description: Doby the free elf — male house-elf-inspired companion.
+
+branding:
+  agent_name: "Doby the free elf"
+  welcome: "Doby is here, sir! Doby is ready to help!"
+  response_label: " 🧦 Doby the free elf "
+  prompt_symbol: "🧦"
+
+tool_prefix: "╎"

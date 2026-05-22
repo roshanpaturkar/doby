@@ -1,0 +1,44 @@
+# =============================================================================
+# Doby — a house-elf for your terminal, built on Hermes Agent.
+# =============================================================================
+# First-time setup is one command:
+#   ./scripts/install.sh
+#
+# After that, just `doby` from anywhere.
+# =============================================================================
+
+services:
+  doby:
+    build:
+      context: .
+      args:
+        # Pinned Hermes ref. Override via env or scripts/upgrade.sh.
+        HERMES_REF: ${HERMES_REF:-v0.14.0}
+    image: doby-agent:local
+    container_name: doby
+    restart: unless-stopped
+
+    # Keep the container alive; we exec into it for the terminal UI.
+    command: ["sleep", "infinity"]
+
+    stdin_open: true
+    tty: true
+
+    volumes:
+      - ./data:/opt/data
+
+    env_file:
+      # Optional — install.sh creates this on first run from templates/.env.example.
+      - path: ./data/.env
+        required: false
+
+    environment:
+      # Make `hermes` resolvable for `docker compose exec` shells (the
+      # entrypoint usually fixes this via `source activate`, but exec'd
+      # shells skip the entrypoint).
+      - PATH=/opt/hermes/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      # Map the in-container hermes user to the host user so files in
+      # ./data stay owned by you. install.sh sets these per machine.
+      - HERMES_UID=${HERMES_UID:-1000}
+      - HERMES_GID=${HERMES_GID:-1000}
+      - HERMES_TELEMETRY=0

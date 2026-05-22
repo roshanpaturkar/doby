@@ -1,0 +1,14 @@
+# Runtime state — created on first launch, never committed.
+data/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Build artifacts / local bundles
+*.tar.gz
+*.bak
