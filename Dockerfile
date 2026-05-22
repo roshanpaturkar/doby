@@ -11,7 +11,7 @@ FROM ghcr.io/astral-sh/uv:0.11.6-python3.13-trixie AS uv_source
 FROM tianon/gosu:1.19-trixie AS gosu_source
 FROM debian:13.4
 
-ARG HERMES_REF=v0.14.0
+ARG HERMES_REF=v2026.5.16
 
 ENV PYTHONUNBUFFERED=1
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/hermes/.playwright
@@ -30,7 +30,7 @@ COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/loc
 
 # ---------- Pull Hermes Agent source ----------
 # Bumping the pinned ref is a single-arg rebuild: `docker compose build
-# --build-arg HERMES_REF=v0.15.0`. See scripts/upgrade.sh.
+# --build-arg HERMES_REF=v2026.5.23`. See scripts/upgrade.sh.
 RUN git clone --depth 1 --branch "${HERMES_REF}" \
       https://github.com/NousResearch/hermes-agent.git /opt/hermes
 

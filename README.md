@@ -73,7 +73,7 @@ personal GitHub is the no-credit-card path.
 | Stop the container     | `cd ~/.doby && docker compose down`                      |
 | Start it again         | `cd ~/.doby && docker compose up -d`                     |
 | Update Hermes version  | `~/.doby/scripts/upgrade.sh`        *(shows current + latest)* |
-| Update Hermes version  | `~/.doby/scripts/upgrade.sh v0.15.0` *(bump to a specific tag)* |
+| Update Hermes version  | `~/.doby/scripts/upgrade.sh v2026.5.16` *(bump to a specific tag)* |
 | Forget everything      | inside chat: *"Doby, forget everything"*                 |
 | Switch Copilot account | inside chat: *"Doby, switch my Copilot to a different account"* |
 

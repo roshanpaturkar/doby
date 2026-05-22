@@ -3,7 +3,7 @@
 #
 # Usage:
 #   scripts/upgrade.sh              # show current pin + latest upstream release
-#   scripts/upgrade.sh v0.15.0      # set pin to v0.15.0 and rebuild
+#   scripts/upgrade.sh v2026.5.16   # set pin to v2026.5.16 and rebuild
 #   scripts/upgrade.sh latest       # auto-detect latest release from GitHub
 
 set -euo pipefail
