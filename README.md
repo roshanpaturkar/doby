@@ -1,30 +1,82 @@
-# 🧦 Doby — a house-elf for your terminal
+# 🧦 Doby — a free elf for your terminal
 
-> *"Doby is here, sir! Doby is ready to help!"*
+> *"Doby has no master, sir! Doby is a free elf, and Doby has come to serve!"*
 
-A free, devoted AI companion that lives in your terminal — built on top of
-[Nous Research's Hermes Agent](https://github.com/NousResearch/hermes-agent),
-themed after everyone's favorite free elf.
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Build](https://github.com/<your-fork>/doby/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![Hermes Agent](https://img.shields.io/badge/hermes--agent-v2026.5.16-purple.svg)](https://github.com/NousResearch/hermes-agent)
+[![Docker](https://img.shields.io/badge/runs%20in-docker-blue.svg)](https://www.docker.com)
 
-Same engine as Hermes (tools, skills, memory, gateway integrations) — just
-with a persona that brings you tea, calls you "sir," and occasionally
-refers to itself in the third person.
+**An open-source, self-hosted, Dobby-inspired AI assistant for your terminal — a privacy-first ChatGPT alternative and GitHub Copilot CLI client, with your data on your disk and your API keys in your hands.**
 
-## Why Doby?
+A devoted AI companion that lives entirely on **your** machine — bound to
+you, not to a corporation. Built on [Nous Research's Hermes Agent](https://github.com/NousResearch/hermes-agent),
+themed after Harry Potter's favorite house-elf, and shipped in under twenty
+files of glue you can read end-to-end in an afternoon.
 
-- **Three lines to install** — Docker + Compose + this repo.
-- **Pick your provider** — GitHub Copilot (free tier works), OpenRouter,
-  Gemini (free tier), Anthropic. Switch any time.
-- **Persona that travels** — Doby keeps his character whether he's writing
-  code, summarizing a meeting transcript, or just saying good morning.
-- **Two skills built in** — `forget` (Doby can wipe his own memory on
-  command) and `relogin` (Doby knows how to switch providers cleanly,
-  including the non-obvious `docker compose down` + `up` quirk).
-- **Pin or bump Hermes deliberately** — your install today and your
-  install in six months are the same Doby. `scripts/upgrade.sh` when you're
-  ready to move.
+Doby routes your conversations through whichever frontier model **you**
+pick (Copilot, Anthropic, Gemini, OpenRouter…) using **your** API keys.
+Your chats, OAuth tokens, persona, and skills live in a single `./data/`
+folder you own outright. No telemetry. No cloud. No middleman. Just a
+sock-wearing house-elf in a Docker box, waiting for you to say his name.
 
-## Install
+<details>
+<summary><b>Table of contents</b></summary>
+
+- [The four promises](#the-four-promises)
+- [How Doby compares](#how-doby-compares)
+- [Install (three lines)](#install-three-lines)
+- [Picking a provider](#picking-a-provider)
+- [Your data, your disk](#your-data-your-disk)
+- [What we promise (and don't)](#what-we-promise-and-dont)
+- [Daily usage](#daily-usage)
+- [Uninstall (clean as Apparition)](#uninstall-clean-as-apparition)
+- [Customizing your elf](#customizing-your-elf--make-him-your-own)
+- [How this works (radical transparency)](#how-this-works-radical-transparency)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [For the fans](#for-the-fans)
+- [License & credits](#license--credits)
+
+</details>
+
+## The four promises
+
+**1. Owned, not rented.** Your chat history is a folder you can `ls`.
+Your persona is a Markdown file you can edit. Your OAuth tokens are a
+JSON file you can delete. When some startup pivots and shuts down their
+API, Doby keeps working — because Doby was never theirs to take away.
+
+**2. Open and transparent.** Two MIT-licensed projects (Doby + Hermes),
+one small `Dockerfile` of glue, one tiny upstream patch we document in a
+comment. Every line we ship is in this repo. There is no hidden binary,
+no obfuscated config, no proprietary plugin. *"Doby keeps no secrets
+from his master."*
+
+**3. Sandboxed, not sprayed across your system.** Doby lives in a Docker
+container. He can't read your SSH keys. He can't peek at your home
+directory. He can only touch the `./data/` folder you explicitly hand
+him. Uninstall is one script — nothing rots in `/usr/local`, no daemons
+linger, no `~/.<something>` files left behind.
+
+**4. Bring your own brain.** Frontier models through your own API keys
+— including free tiers. Your keys live in `./data/.env` on your disk.
+They are never seen by us, never seen by Hermes upstream, never seen by
+anyone but the provider you point Doby at.
+
+## How Doby compares
+
+|                              | **Doby** | ChatGPT app | Local LLM (Ollama) | Raw Hermes |
+| ---------------------------- | :------: | :---------: | :----------------: | :--------: |
+| Your data on your disk       |    ✓     |      ✗      |          ✓         |     ✓      |
+| Frontier-class models        |    ✓     |      ✓      |          ✗         |     ✓      |
+| Open source, MIT             |    ✓     |      ✗      |          ✓         |     ✓      |
+| Sandboxed install            |    ✓     |      ✗      |       partial      |  depends   |
+| Persona that survives reboot |    ✓     |   partial   |          ✗         |   manual   |
+| One-command uninstall        |    ✓     |      ✗      |       manual       |   manual   |
+| Free elf?                    | **yes**  |     no      |         no         |   yes-ish  |
+
+## Install (three lines)
 
 ```bash
 git clone https://github.com/<your-fork>/doby ~/.doby
@@ -35,18 +87,18 @@ cd ~/.doby
 The installer:
 
 1. Confirms Docker is running.
-2. Seeds `data/` from `templates/` (idempotent — your edits are safe on re-run).
-3. Builds the image (~5–10 min on first build; mostly cached after).
-4. Drops a `doby` wrapper at `~/.local/bin/doby` with this repo's path baked in.
+2. Seeds `./data/` from `templates/` (idempotent — your edits are safe on re-run).
+3. Builds the image (~5–10 min first time, mostly cached after).
+4. Drops a `doby` wrapper at `~/.local/bin/doby` pointed at this repo.
 
-Then:
+Then summon him:
 
 ```bash
 doby
 ```
 
-Inside the chat, pick a model with `/model` (does the OAuth dance if needed)
-and start talking.
+Inside the chat, pick a model with `/model` (Doby does the OAuth dance if
+needed) and start talking. *"Doby is ready to help, sir!"*
 
 ## Picking a provider
 
@@ -58,10 +110,54 @@ Paste any required keys into `data/.env`.
 | GitHub Copilot    | **Free** | OAuth via `/model`            | Free tier: ~50 chat msgs/month. Pro/Business unlock more models.        |
 | OpenRouter        | $        | `OPENROUTER_API_KEY` in `.env`| One key, 200+ models. Best variety. `vendor/model` naming required.     |
 | Gemini AI Studio  | **Free** | `GEMINI_API_KEY` in `.env`    | Free flash models. Pro models need billing enabled.                     |
-| Anthropic         | $        | `ANTHROPIC_API_KEY` in `.env` | NOT your Claude Pro/Max sub — a real API key from console.anthropic.com.|
+| Anthropic         | $        | `ANTHROPIC_API_KEY` in `.env` | NOT a Claude Pro/Max sub — a real API key from console.anthropic.com.   |
 
-If you're a fan trying Doby for the first time, **Copilot Free** + your
-personal GitHub is the no-credit-card path.
+First time trying Doby? **Copilot Free** + your personal GitHub is the
+no-credit-card path.
+
+## Your data, your disk
+
+Doby's entire memory of you lives in `./data/` — visible, inspectable,
+yours:
+
+```
+data/
+├── .env             # API keys — Doby reads these, nobody else does
+├── auth.json        # OAuth tokens (Copilot, etc.)
+├── config.yaml      # which provider, which model, which persona
+├── SOUL.md          # Doby's character — edit, save, talk; he changes on the next turn
+├── MEMORY.md        # what Doby remembers (read it anytime)
+├── USER.md          # Doby's notes on you (read, edit, or delete)
+├── sessions/        # past conversations (plain SQLite — fully inspectable)
+├── skins/doby.yaml  # banner, prompt symbol, colors
+└── skills/          # Doby's learned abilities — drop in any agentskills.io skill
+```
+
+- **Back up Doby**: `tar czf doby-backup.tgz data/`
+- **Move Doby to a new machine**: copy the folder
+- **Read his mind**: `cat data/MEMORY.md`
+- **Make him forget**: ask him in chat, or delete the file
+- **Audit what he knows about you**: `ls -la data/`
+
+There is no other Doby anywhere. No cloud copy, no shadow profile, no
+"in case you come back later." This folder *is* Doby.
+
+## What we promise (and don't)
+
+- **No telemetry.** `HERMES_TELEMETRY=0` is set by default. The container
+  doesn't phone home, and we'd notice if upstream tried to.
+- **No hidden patches.** The single modification we make to Hermes is a
+  three-line `sed` in the Dockerfile fixing an upstream config-shadowing
+  bug. It is commented, traceable, and removable when upstream merges
+  the fix. *"Doby would never hex his master's code."*
+- **No vendor lock-in.** Switch providers with one config edit. Your
+  chats, persona, and memories stay.
+- **Reproducible builds.** Hermes is pinned in `HERMES_VERSION`. A weekly
+  GitHub Action rebuilds against the pin and fails loudly if our patch
+  stops applying. Same input → same Doby, today and a year from now.
+- **No analytics on the README.** We don't know if you installed.
+  We don't know if you uninstalled. Word of mouth, like the Daily Prophet
+  but for elves.
 
 ## Daily usage
 
@@ -77,7 +173,7 @@ personal GitHub is the no-credit-card path.
 | Forget everything      | inside chat: *"Doby, forget everything"*                 |
 | Switch Copilot account | inside chat: *"Doby, switch my Copilot to a different account"* |
 
-## Uninstall
+## Uninstall (clean as Apparition)
 
 ```bash
 cd ~/.doby
@@ -95,63 +191,138 @@ Flags:
 - `--keep-data` — uninstall everything *except* `data/` (so you can re-install later without re-OAuth)
 - `--yes` — answer yes to everything (only use if you're sure)
 
-The repo directory itself is **never** auto-removed — `rm -rf ~/.doby` yourself when you're certain. OAuth grants on provider websites also need to be revoked manually; the uninstaller prints the links.
+The repo directory itself is **never** auto-removed — `rm -rf ~/.doby`
+yourself when you're certain. OAuth grants on provider websites also
+need to be revoked manually; the uninstaller prints the links.
 
-## Customizing your elf
+## Customizing your elf — make him your own
 
-Everything user-facing lives under `data/`:
-
-```
-data/
-├── .env             # API keys (gitignored)
-├── config.yaml      # provider, skin, personalities
-├── SOUL.md          # Doby's persona — edit and it reloads on the next turn
-├── skins/
-│   └── doby.yaml    # 🧦 banner, prompt, response label
-└── skills/
-    ├── forget/      # Doby's self-wipe skill
-    └── relogin/     # Doby's auth-reset skill
-```
-
-**Want a different character?** Edit `SOUL.md` (Hagrid? Snape? McGonagall?
-go wild). Edit `skins/doby.yaml` for the visible branding (or write a new
-skin — `skins/snape.yaml` with green colors and a different prompt symbol).
-The skill system is the [agentskills.io](https://agentskills.io) open
-standard — drop any compatible skill into `data/skills/`.
+Doby is just a costume on top of Hermes. The wand chooses the wizard;
+the `SOUL.md` chooses the elf. You can dress him as anyone.
 
 **Quick fork-Doby walkthrough:**
 
-1. Edit `data/SOUL.md` — write whoever you want (Hagrid, Snape, McGonagall, your own pet's voice).
-2. Copy `data/skins/doby.yaml` → `data/skins/<your-elf>.yaml` and rewrite the four `branding` fields.
+1. Edit `data/SOUL.md` — write whoever you want (Hagrid? Snape? McGonagall?
+   your own pet's voice? go wild).
+2. Copy `data/skins/doby.yaml` → `data/skins/<your-elf>.yaml` and rewrite
+   the four `branding` fields.
 3. In `data/config.yaml`, set `display.skin: <your-elf>`.
 4. Restart the chat. New character, same brain.
 
-## How this works
+The skill system is the [agentskills.io](https://agentskills.io) open
+standard — drop any compatible skill into `data/skills/` and Doby learns
+it on next launch.
 
-Doby is intentionally thin. The repo ships:
+## How this works (radical transparency)
 
-- A pinned reference to Hermes (`HERMES_VERSION`)
-- A `Dockerfile` that clones Hermes at build time and applies one small
-  patch (a config-shadowing bug we hit; tracked for upstream)
-- Persona/skin/skill files that bind-mount into the running container
-- An installer + wrapper
+Doby is intentionally thin. The whole repo is:
 
-That's it. All AI/agent functionality (tool calling, memory, gateway,
-sessions, MCP, etc.) comes from Hermes. We just make it feel like Doby.
+- `HERMES_VERSION` — one line, the pinned upstream tag
+- `Dockerfile` — clones Hermes at build time, installs deps, applies one
+  small commented patch
+- `docker-compose.yml` — bind-mounts `./data` and sets the env
+- `templates/` — the default persona, skin, and skills
+- `bin/doby` — a ten-line wrapper around `docker compose exec`
+- `scripts/{install,uninstall,upgrade}.sh` — readable in under five
+  minutes each
 
-If you find this useful, the heavy lifting credit belongs to the Nous
-Research team. See [`ATTRIBUTION.md`](ATTRIBUTION.md).
+All AI/agent functionality (tool calling, memory, sessions, MCP, gateway,
+the actual LLM plumbing) lives in Hermes upstream. We just dress it up
+and put a sock on it.
+
+If you find Doby useful, the heavy-lifting credit belongs to
+[Nous Research](https://nousresearch.com). See
+[`ATTRIBUTION.md`](ATTRIBUTION.md).
 
 ## Troubleshooting
 
 - **`docker: not found` / daemon not running** — install Docker Desktop (Mac/Windows) or `docker.io` (Linux), start it, retry.
 - **`doby: command not found`** — `~/.local/bin` isn't on your PATH. Add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc.
-- **OAuth keeps using the wrong account** — your browser cached a session, or the OAuth grant on the provider's side is still active. Ask Doby: *"switch my Copilot account"* — he'll walk you through it. (Or open the device-code URL in an incognito window so the browser has no cached session.)
+- **OAuth keeps using the wrong account** — your browser cached a session, or the OAuth grant on the provider's side is still active. Ask Doby: *"switch my Copilot account"* — he'll walk you through it. (Or open the device-code URL in an incognito window.)
 - **`model_not_supported`** — your provider tier doesn't include that model. Run `/model` inside the chat to see what's available.
 - **Giant ASCII banner on every launch** — `display.compact: true` should be set in `data/config.yaml` (it is by default). If it's not respected, the Dockerfile patch didn't land — rerun `./scripts/install.sh` to rebuild.
+
+## FAQ
+
+**Is Doby the same as Dobby from Harry Potter?**
+Doby is a fan-made tribute, not the official character (note the one-letter
+difference). The persona, the sock, and the "free elf" spirit are all there.
+Harry Potter, Dobby, and related characters remain the intellectual property
+of J.K. Rowling and Warner Bros.
+
+**How is Doby different from ChatGPT, Claude Desktop, or Copilot Chat?**
+Doby is a *client*, not a service. You bring your own API key (or OAuth into
+free tiers) and Doby routes your chat through whichever provider you pick.
+Your conversations stay on your machine as plain files you can inspect. If
+any single provider disappears, Doby and your history keep working through
+the others.
+
+**Does Doby work offline?**
+The container itself runs offline, but the *models* live with the provider
+(Anthropic, Google, OpenAI, GitHub). For a fully offline setup, point Doby
+at a local provider like Ollama via its OpenAI-compatible base URL.
+
+**Can I use Doby with my paid Copilot / Claude / Gemini subscription?**
+GitHub Copilot OAuth works directly with any tier (Free, Pro, Business,
+Enterprise). Anthropic and Gemini need API keys, not subscription tokens —
+your Claude Pro or Gemini Advanced sub does **not** include API credits.
+(Claude Max is the exception; it grants limited API access.)
+
+**Does Doby cost anything to run?**
+Doby itself is free, MIT-licensed. Model calls cost whatever the provider
+charges. Copilot Free + Gemini Flash give you a zero-cost path to get
+started.
+
+**Does Doby work on Windows?**
+Yes — via WSL2 + Docker Desktop. Mac (Intel + Apple Silicon) and Linux are
+tier-1 supported.
+
+**Can I make Doby into a different character — Snape, McGonagall, Hagrid?**
+Yes. Edit `data/SOUL.md` for the voice, copy `data/skins/doby.yaml` to a
+new file for the visual branding, and point `display.skin` at it. Same
+brain, new face. PRs welcome to grow a fan library.
+
+**Where exactly is my data stored?**
+Everything in `./data/` next to the repo. API keys in `data/.env`, OAuth
+tokens in `data/auth.json`, chat history in `data/sessions/` (SQLite),
+memories in `data/MEMORY.md` and `data/USER.md`. All readable, all
+deletable, all yours.
+
+**Can I run Doby without Docker?**
+Not currently. Docker isolation is a feature, not a limitation — it sandboxes
+the agent, makes install identical across OSes, and lets uninstall be one
+clean script. A Homebrew formula for Mac may come later if there's demand.
+
+**Is the project actively maintained?**
+The repo pins a specific Hermes Agent version and runs a weekly CI canary
+to catch upstream drift before users do. Issues and PRs are welcome.
+
+## For the fans
+
+If you came here because you cried at the end of *Chamber of Secrets*,
+welcome. A few notes on character:
+
+- Doby calls you "sir" and "master" — but he is a **free elf**, not a
+  servant. He helps because he wants to. The sock 🧦 in the banner is his
+  freedom.
+- His persona lives in `data/SOUL.md`. Edit it. Make him more devoted.
+  Make him cheekier. Give him a fear of socks-with-sandals. He'll learn
+  it on the next turn.
+- Want a Snape skin? A McGonagall persona? A Luna Lovegood theme?
+  Build one and open a PR adding it to `templates/skins/` — let's grow
+  a fan library. *Many wizards, many wands.*
+- This is a fan project. Harry Potter, Dobby, and all related characters
+  remain the property of J.K. Rowling and Warner Bros. Doby is a tribute
+  built with love, not a commercial product. See [`ATTRIBUTION.md`](ATTRIBUTION.md).
 
 ## License & credits
 
 MIT. See [`LICENSE`](LICENSE) and [`ATTRIBUTION.md`](ATTRIBUTION.md).
+
+> *Doby is a free elf, sir. And Doby is yours, sir, for as long as you'll have him.*
+
+---
+
+<sub>**Keywords**: ai assistant · ai agent · llm agent · self-hosted ai · open-source ai · chatgpt alternative · github copilot cli · claude cli · gemini cli · openrouter client · terminal ai · docker ai · agentic ai · private ai · harry potter · dobby · house-elf · hermes agent · nous research · skills framework</sub>
 
 🧦
