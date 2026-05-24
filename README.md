@@ -3,7 +3,7 @@
 > *"Doby has no master, sir! Doby is a free elf, and Doby has come to serve!"*
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build](https://github.com/<your-fork>/doby/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![Build](https://github.com/roshanpaturkar/doby/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![Hermes Agent](https://img.shields.io/badge/hermes--agent-v2026.5.16-purple.svg)](https://github.com/NousResearch/hermes-agent)
 [![Docker](https://img.shields.io/badge/runs%20in-docker-blue.svg)](https://www.docker.com)
 
@@ -23,20 +23,21 @@ sock-wearing house-elf in a Docker box, waiting for you to say his name.
 <details>
 <summary><b>Table of contents</b></summary>
 
-- [The four promises](#the-four-promises)
-- [How Doby compares](#how-doby-compares)
-- [Install (three lines)](#install-three-lines)
-- [Picking a provider](#picking-a-provider)
-- [Your data, your disk](#your-data-your-disk)
-- [What we promise (and don't)](#what-we-promise-and-dont)
-- [Daily usage](#daily-usage)
-- [Uninstall (clean as Apparition)](#uninstall-clean-as-apparition)
-- [Customizing your elf](#customizing-your-elf--make-him-your-own)
-- [How this works (radical transparency)](#how-this-works-radical-transparency)
-- [Troubleshooting](#troubleshooting)
-- [FAQ](#faq)
-- [For the fans](#for-the-fans)
-- [License & credits](#license--credits)
+- [🧦 Doby — a free elf for your terminal](#-doby--a-free-elf-for-your-terminal)
+  - [The four promises](#the-four-promises)
+  - [How Doby compares](#how-doby-compares)
+  - [Install (three lines)](#install-three-lines)
+  - [Picking a provider](#picking-a-provider)
+  - [Your data, your disk](#your-data-your-disk)
+  - [What we promise (and don't)](#what-we-promise-and-dont)
+  - [Daily usage](#daily-usage)
+  - [Uninstall (clean as Apparition)](#uninstall-clean-as-apparition)
+  - [Customizing your elf — make him your own](#customizing-your-elf--make-him-your-own)
+  - [How this works (radical transparency)](#how-this-works-radical-transparency)
+  - [Troubleshooting](#troubleshooting)
+  - [FAQ](#faq)
+  - [For the fans](#for-the-fans)
+  - [License \& credits](#license--credits)
 
 </details>
 
@@ -79,7 +80,7 @@ anyone but the provider you point Doby at.
 ## Install (three lines)
 
 ```bash
-git clone https://github.com/<your-fork>/doby ~/.doby
+git clone https://github.com/roshanpaturkar/doby ~/.doby
 cd ~/.doby
 ./scripts/install.sh
 ```
