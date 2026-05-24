@@ -42,3 +42,30 @@ services:
       - HERMES_UID=${HERMES_UID:-1000}
       - HERMES_GID=${HERMES_GID:-1000}
       - HERMES_TELEMETRY=0
+
+  # ---------------------------------------------------------------------------
+  # Opt-in messaging gateway sidecar (Telegram, WhatsApp, Slack, Google Chat...).
+  # Disabled by default — enable with `--profile gateway` or COMPOSE_PROFILES=gateway:
+  #   docker compose --profile gateway up -d            # start gateway
+  #   docker compose --profile gateway down doby-gateway  # stop gateway
+  # Shares ./data with the main `doby` container; depends_on ensures the main
+  # container completes its chown before the sidecar starts (avoids a race).
+  # ---------------------------------------------------------------------------
+  doby-gateway:
+    profiles: ["gateway"]
+    image: doby-agent:local
+    container_name: doby-gateway
+    restart: unless-stopped
+    depends_on:
+      - doby
+    command: ["/opt/hermes/docker/entrypoint.sh", "hermes", "gateway", "run"]
+    volumes:
+      - ./data:/opt/data
+    env_file:
+      - path: ./data/.env
+        required: false
+    environment:
+      - PATH=/opt/hermes/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - HERMES_UID=${HERMES_UID:-1000}
+      - HERMES_GID=${HERMES_GID:-1000}
+      - HERMES_TELEMETRY=0

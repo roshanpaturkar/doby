@@ -92,6 +92,12 @@ ${c_grn}🧦 Doby is ready, sir!${c_rst}
     • Branding — ${c_dim}data/skins/doby.yaml${c_rst}
     • Skills   — ${c_dim}data/skills/${c_rst}
 
+  Use Doby from Telegram / Discord / Slack / WhatsApp / Google Chat / ... :
+    1. ${c_dim}doby gateway setup${c_rst}   — interactive wizard, pick a platform, paste your bot token
+    2. ${c_dim}doby gateway on${c_rst}      — start the bot (background, survives reboots)
+    3. ${c_dim}doby gateway status${c_rst}  — is it running?  ${c_dim}doby gateway logs${c_rst} to tail
+    4. ${c_dim}doby gateway off${c_rst}     — stop it when you don't want the bot up
+
   Docs:
     • ${c_dim}docs/PROVIDERS.md${c_rst} — picking and configuring providers
     • ${c_dim}docs/PERSONAS.md${c_rst}  — forking Doby into your own elf

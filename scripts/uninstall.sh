@@ -61,10 +61,12 @@ printf "%s   Repo: %s%s\n\n" "$c_dim" "$REPO_DIR" "$c_rst"
 # --- 1. Container ---
 say "Stopping the doby container..."
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  if [ -n "$(docker compose -f "$COMPOSE_FILE" ps -aq doby 2>/dev/null)" ]; then
+  if [ -n "$(docker compose -f "$COMPOSE_FILE" ps -aq doby 2>/dev/null)" ] || \
+     [ -n "$(docker compose -f "$COMPOSE_FILE" --profile gateway ps -aq doby-gateway 2>/dev/null)" ]; then
+    # --profile gateway ensures the optional doby-gateway sidecar is also torn down.
     HERMES_UID="$(id -u)" HERMES_GID="$(id -g)" \
-      docker compose -f "$COMPOSE_FILE" down --remove-orphans >/dev/null
-    ok "Container stopped + removed"
+      docker compose -f "$COMPOSE_FILE" --profile gateway down --remove-orphans >/dev/null
+    ok "Container(s) stopped + removed"
   else
     skip "No doby container found"
   fi
@@ -89,7 +91,10 @@ fi
 
 # --- 3. Wrapper (only if it points at THIS repo) ---
 if [ -f "$WRAPPER" ]; then
-  if grep -qF "DOBY_DIR=\"$REPO_DIR\"" "$WRAPPER" 2>/dev/null; then
+  # Match both the legacy literal form (DOBY_DIR="<repo>") and the new
+  # env-overridable form (DOBY_DIR="${DOBY_DIR:-<repo>}") that bin/doby uses.
+  if grep -qF ":-${REPO_DIR}}" "$WRAPPER" 2>/dev/null || \
+     grep -qF "DOBY_DIR=\"$REPO_DIR\"" "$WRAPPER" 2>/dev/null; then
     if confirm "Remove the doby wrapper at $WRAPPER?"; then
       rm -f "$WRAPPER"
       ok "Wrapper removed"

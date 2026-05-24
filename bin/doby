@@ -5,7 +5,15 @@
 #   doby                       # drop into Doby's chat
 #   doby chat -q "hi"          # one-shot query mode
 #   doby model                 # provider/model picker (OAuth flow lives here)
-#   doby <any hermes subcmd>   # forwards to hermes
+#
+#   doby gateway setup         # configure messaging platforms (Telegram, etc.)
+#   doby gateway on            # start the bot persistently (background, survives reboots)
+#   doby gateway off           # stop the bot
+#   doby gateway status        # is the bot running?
+#   doby gateway logs          # tail bot logs (Ctrl+C to detach)
+#   doby gateway restart       # restart the bot
+#
+#   doby <any hermes subcmd>   # forwards to hermes inside the running container
 #
 # Configuration:
 #   DOBY_DIR  — directory containing docker-compose.yml + data/
@@ -22,8 +30,67 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
   exit 1
 fi
 
-# Idempotently bring the container up (no-op if already running).
-HERMES_UID="$(id -u)" HERMES_GID="$(id -g)" \
-  docker compose -f "$COMPOSE_FILE" up -d >/dev/null
+compose() {
+  HERMES_UID="$(id -u)" HERMES_GID="$(id -g)" \
+    docker compose -f "$COMPOSE_FILE" "$@"
+}
 
+# Idempotently bring the main container up (no-op if already running).
+compose up -d doby >/dev/null
+
+# ----------------------------------------------------------------------------
+# Gateway lifecycle commands run at the Docker level (sidecar via --profile),
+# not via hermes — Hermes' own `gateway install/start/stop` builds systemd
+# units, which don't apply inside our container. Everything else under
+# `doby gateway ...` (setup, list, ...) falls through to hermes.
+# ----------------------------------------------------------------------------
+if [[ "${1:-}" == "gateway" ]]; then
+  case "${2:-}" in
+    on|start)
+      compose --profile gateway up -d doby-gateway
+      printf "🧦 Gateway running. Tail logs with: doby gateway logs\n"
+      exit 0
+      ;;
+    off|stop)
+      compose --profile gateway rm -sf doby-gateway >/dev/null 2>&1 || true
+      printf "🧦 Gateway stopped.\n"
+      exit 0
+      ;;
+    restart)
+      compose --profile gateway restart doby-gateway
+      exit 0
+      ;;
+    status)
+      if docker ps --format '{{.Names}}' | grep -q '^doby-gateway$'; then
+        printf "✓ Gateway is running.\n"
+        compose ps doby-gateway
+      else
+        printf "✗ Gateway not running. Start with: doby gateway on\n"
+      fi
+      exit 0
+      ;;
+    logs)
+      shift 2
+      exec docker compose -f "$COMPOSE_FILE" logs -f doby-gateway "$@"
+      ;;
+    run)
+      # Foreground run inside the main container — route through the entrypoint
+      # so privileges drop properly (otherwise Hermes refuses to run as root).
+      shift 2
+      exec docker compose -f "$COMPOSE_FILE" exec doby \
+        /opt/hermes/docker/entrypoint.sh hermes gateway run "$@"
+      ;;
+    install|uninstall|migrate-legacy)
+      cat >&2 <<EOF
+doby: 'gateway $2' manages systemd/launchd units and doesn't apply to the
+      Docker setup. Use the Doby-native equivalents instead:
+        doby gateway on    # start (background, restarts on crash/reboot)
+        doby gateway off   # stop and remove the gateway container
+EOF
+      exit 1
+      ;;
+  esac
+fi
+
+# Everything else: forward to hermes inside the running main container.
 exec docker compose -f "$COMPOSE_FILE" exec doby hermes "$@"
