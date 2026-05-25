@@ -37,8 +37,12 @@ confirm() { local a; read -r -p "  ${c_y}?${c_x} $1 [y/N] " a; [[ "${a:-}" =~ ^[
 remote_has_commits() { [ -n "$(git ls-remote --heads "$1" 2>/dev/null)" ]; }
 
 ssh_ok() { # ssh_ok host -> 0 if GitHub auth works
-  ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T "$1" 2>&1 \
-    | grep -qi "successfully authenticated"
+  # NOTE: `ssh -T git@github.com` ALWAYS exits non-zero (GitHub provides no
+  # shell), so we must NOT judge by exit code under pipefail. Capture the
+  # banner and grep the string instead.
+  local out
+  out="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T "$1" 2>&1 || true)"
+  grep -qi "successfully authenticated" <<<"$out"
 }
 
 ensure_alias() { # host keyfile -> add an ~/.ssh/config block iff absent
