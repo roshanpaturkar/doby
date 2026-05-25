@@ -37,6 +37,11 @@ top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [ "$top" = "$(pwd -P)" ] || die "$VAULT is not its own git repo (toplevel=$top). Run backup-init.sh first."
 git remote get-url origin >/dev/null 2>&1 || die "no 'origin' remote in $VAULT"
 
+# Fallback git identity (local-only, set only if none resolvable) so cron
+# commits never fail with "Author identity unknown" on a bare box.
+git config user.email >/dev/null 2>&1 || git config user.email "doby@$(hostname -s 2>/dev/null || hostname).local"
+git config user.name  >/dev/null 2>&1 || git config user.name "Doby"
+
 # --- concurrency lock (atomic mkdir; stale-safe after 30 min) ---
 LOCK="${TMPDIR:-/tmp}/doby-sync-vault.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then

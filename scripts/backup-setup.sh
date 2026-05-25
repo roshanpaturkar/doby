@@ -36,6 +36,15 @@ confirm() { local a; read -r -p "  ${c_y}?${c_x} $1 [y/N] " a; [[ "${a:-}" =~ ^[
 
 remote_has_commits() { [ -n "$(git ls-remote --heads "$1" 2>/dev/null)" ]; }
 
+# Set a repo-local git identity ONLY if none is already resolvable (global or
+# local). Avoids "Author identity unknown" on a bare VPS without touching any
+# existing global config. Call from inside the repo.
+ensure_identity() {
+  git config user.email >/dev/null 2>&1 || \
+    git config user.email "doby@$(hostname -s 2>/dev/null || hostname).local"
+  git config user.name  >/dev/null 2>&1 || git config user.name "Doby"
+}
+
 ssh_ok() { # ssh_ok host -> 0 if GitHub auth works
   # NOTE: `ssh -T git@github.com` ALWAYS exits non-zero (GitHub provides no
   # shell), so we must NOT judge by exit code under pipefail. Capture the
@@ -143,6 +152,7 @@ top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [ "$top" = "$(pwd -P)" ] || git init -q -b main
 git remote remove origin 2>/dev/null || true
 git remote add origin "$VAULT_URL"
+ensure_identity
 cat > .gitignore <<'EOF'
 .obsidian/workspace
 .obsidian/workspace.json
@@ -182,6 +192,7 @@ cd "$STATE"
 [ -d .git ] || git init -q -b main
 git remote remove origin 2>/dev/null || true
 git remote add origin "$STATE_URL"
+ensure_identity
 printf '%s\n' '*.lock' '.DS_Store' > .gitignore
 
 # Populate via the same mirror cron uses, then push.

@@ -66,6 +66,9 @@ mirror_file "$DATA/config.yaml" "$STATE/config.yaml"
 [ "${DOBY_BACKUP_SKILLS:-0}" = "1" ] && mirror_dir "$DATA/skills" "$STATE/skills"
 
 cd "$STATE"
+# Fallback git identity (local-only, only if none resolvable).
+git config user.email >/dev/null 2>&1 || git config user.email "doby@$(hostname -s 2>/dev/null || hostname).local"
+git config user.name  >/dev/null 2>&1 || git config user.name "Doby"
 git add -A
 if git diff --cached --quiet; then
   log "no changes"
