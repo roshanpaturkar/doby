@@ -26,7 +26,10 @@ BRANCH="${DOBY_VAULT_BRANCH:-main}"
 log() { printf '%s sync-vault: %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
 
-[ -d "$VAULT" ] || die "vault dir not found: $VAULT"
+if [ ! -d "$VAULT" ]; then
+  mkdir -p "$VAULT"
+  log "vault dir was missing — created it: $VAULT"
+fi
 cd "$VAULT"
 
 # Confirm THIS dir is the repo root (not a parent repo bleeding through).

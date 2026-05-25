@@ -34,8 +34,13 @@ BRANCH="${DOBY_STATE_BRANCH:-main}"
 log() { printf '%s backup-state: %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
 
-[ -d "$DATA" ]        || die "data dir not found: $DATA"
-[ -d "$STATE/.git" ] || die "state repo not initialized at $STATE (run backup-init.sh first)"
+if [ ! -d "$DATA" ]; then
+  mkdir -p "$DATA"
+  log "data dir was missing — created it: $DATA"
+fi
+# This one is a precondition, not just a dir: the state repo must be a git clone
+# with a remote (set up by backup-setup.sh). Can't mkdir our way out of that.
+[ -d "$STATE/.git" ] || die "state repo not initialized at $STATE — run scripts/backup-setup.sh first"
 
 # --- concurrency lock ---
 LOCK="${TMPDIR:-/tmp}/doby-backup-state.lock"

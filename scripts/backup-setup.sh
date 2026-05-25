@@ -85,7 +85,10 @@ info "checkout: $REPO_DIR"
 hr "1. Paths"
 # ---------------------------------------------------------------------------
 DATA="$(ask "Doby data dir" "${REPO_DIR}/data")"
-[ -d "$DATA" ] || die "data dir not found: $DATA"
+if [ ! -d "$DATA" ]; then
+  mkdir -p "$DATA"
+  warn "data dir didn't exist — created it: $DATA"
+fi
 DATA="$(cd "$DATA" && pwd -P)"
 ok "data: $DATA"
 
