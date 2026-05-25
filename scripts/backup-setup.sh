@@ -93,10 +93,15 @@ DATA="$(cd "$DATA" && pwd -P)"
 ok "data: $DATA"
 
 # Find the Documents dir (case-insensitive), then the vault dir inside it.
-DOCS="$(find "$DATA" -maxdepth 1 -type d -iname documents 2>/dev/null | head -1)"
+# `|| true` guards each pipeline: find on a not-yet-created dir exits non-zero,
+# which under `set -e`+pipefail would otherwise kill the script silently.
+DOCS="$(find "$DATA" -maxdepth 1 -type d -iname documents 2>/dev/null | head -1 || true)"
 [ -n "$DOCS" ] || DOCS="$DATA/Documents"
-VAULT="$(find "$DOCS" -maxdepth 1 -mindepth 1 -type d -iname '*bsidian*' 2>/dev/null | head -1)"
-[ -n "$VAULT" ] || VAULT="$(find "$DOCS" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1)"
+VAULT=""
+if [ -d "$DOCS" ]; then
+  VAULT="$(find "$DOCS" -maxdepth 1 -mindepth 1 -type d -iname '*bsidian*' 2>/dev/null | head -1 || true)"
+  [ -n "$VAULT" ] || VAULT="$(find "$DOCS" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1 || true)"
+fi
 
 if [ -z "$VAULT" ]; then
   warn "no vault folder found under $DOCS (Doby hasn't taken a note yet)"
