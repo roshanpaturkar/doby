@@ -1,11 +1,11 @@
 # Backup & Sync
 
 Keep Doby's brain in git: notes editable from anywhere, identity restorable
-after a crash. Two private repos, two sync models.
+after a crash. **One manual step (deploy keys), then one command.**
 
 | Repo | Holds | Direction | Why |
 |------|-------|-----------|-----|
-| **doby-vault** | `Documents/Obsidian Vault/` | **bidirectional** | You edit notes in Obsidian *and* Doby writes them. Central repo = source of truth. |
+| **doby-vault** | the Obsidian vault under `data/Documents/` | **bidirectional** | You edit notes in Obsidian *and* Doby writes them. Central repo = source of truth. |
 | **doby-state** | `SOUL.md`, `config.yaml`, `memories/`, `skins/` | one-way (host → repo) | Doby-authored identity. Mirror = crash recovery. |
 
 > `skills/` is **not** mirrored by default — it's Hermes' bundled catalog
@@ -13,146 +13,151 @@ after a crash. Two private repos, two sync models.
 > `skills/` (reinstalled by `install.sh`). Set `DOBY_BACKUP_SKILLS=1` only if you
 > hand-author skills directly under `data/skills/`.
 
-```
-              ┌──────────── doby-vault (private) ────────────┐
-              │            central source of truth            │
-              └──▲───────────────────────────────────────▲───┘
-       push/pull │                                         │ push/pull
-   ┌─────────────┴──────────────┐            ┌─────────────┴──────────────┐
-   │ VPS  (sync-vault.sh, cron) │            │ Laptop (obsidian-git plugin)│
-   │ Doby reads/writes notes    │            │ you edit notes in Obsidian  │
-   └────────────────────────────┘            └─────────────────────────────┘
-
-   VPS data/ identity ──(backup-state.sh, cron)──► doby-state (private)  [backup only]
-```
-
-## What is NEVER backed up
+### Never backed up
 
 `.env`, `auth.json`, `auth.lock` — your OAuth + provider tokens. They stay on
-the box. After a restore you re-auth with `doby` → `/model`. Keeping secrets out
-of git is the whole point; **never `git init` at `data/` root.**
+the box. After a restore you re-auth with `doby` → `/model`. **Never `git init`
+at `data/` root** — that would commit your secrets.
 
 ---
 
-## One-time setup
+## Setup (run on the VPS — the box that owns the data)
 
-### 0. Create two empty private repos
+### Step 1 — Create two empty private repos
 
-On GitHub, create `doby-vault` and `doby-state` — **private**, no README, no
-`.gitignore` (keep them empty so the seed push isn't rejected). Grab the SSH
-URLs, e.g. `git@github.com:USER/doby-vault.git`.
+On GitHub, create **`doby-vault`** and **`doby-state`** — private, **no README,
+no .gitignore** (keep them empty so the first push isn't rejected).
 
-### 1. Give the VPS push access (deploy keys)
+### Step 2 — Deploy keys (the one manual part)
 
-The sync runs on the **host**, never inside the container — Doby never holds a
-key, so a prompt-injected Doby can't push or exfiltrate. On the VPS:
+A deploy key is an SSH key locked to a single repo. GitHub won't let one key
+serve two repos, so make **one key per repo** and route them with SSH aliases.
+This runs on the **host**, so Doby never holds a git credential.
 
+**2a. Make two keys**
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/doby_deploy -N "" -C "doby-vps"
-cat ~/.ssh/doby_deploy.pub
+ssh-keygen -t ed25519 -f ~/.ssh/doby_vault -N "" -C doby-vps-vault
+ssh-keygen -t ed25519 -f ~/.ssh/doby_state -N "" -C doby-vps-state
 ```
 
-Add that public key as a **deploy key with write access** on *each* repo
-(GitHub → repo → Settings → Deploy keys → Add, tick "Allow write access").
-Then point SSH at it:
-
+**2b. Print the public keys**
 ```bash
-cat >> ~/.ssh/config <<'EOF'
-Host github.com
-  IdentityFile ~/.ssh/doby_deploy
+cat ~/.ssh/doby_vault.pub
+cat ~/.ssh/doby_state.pub
+```
+
+**2c. Add each to its repo on GitHub**
+- `doby_vault.pub` → **doby-vault** repo → *Settings → Deploy keys → Add deploy
+  key* → paste the line → ✅ **Allow write access** → Add.
+- `doby_state.pub` → **doby-state** repo → same → ✅ **Allow write access**.
+
+**2d. SSH aliases.** Heredocs paste badly over SSH — use `nano` (paste-safe):
+```bash
+nano ~/.ssh/config
+```
+Paste:
+```
+Host github-vault
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/doby_vault
   IdentitiesOnly yes
-EOF
+
+Host github-state
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/doby_state
+  IdentitiesOnly yes
+```
+Save/exit: **Ctrl-O, Enter, Ctrl-X**. Then lock it down:
+```bash
+chmod 600 ~/.ssh/config
 ```
 
-> A single deploy key can't be reused across two repos on GitHub. Either make
-> two keys (one per repo, with a `Host github-vault` / `Host github-state`
-> alias each), or use one key as a **machine-user** SSH key with access to both.
-> Two keys + host aliases is the clean path; adjust the repo URLs to the alias.
+**2e. Verify** (do this before Step 3 — the setup script checks it too)
+```bash
+ssh -T git@github-vault    # → "Hi <user>/doby-vault! You've successfully authenticated..."
+ssh -T git@github-state    # → "Hi <user>/doby-state! ..."
+```
 
-### 2. Seed the repos (run on the authoritative box — the VPS)
+### Step 3 — One command
 
 ```bash
-cd /path/to/public-doby
-DOBY_DATA_DIR=/path/to/data \
-DOBY_VAULT_URL=git@github.com:USER/doby-vault.git \
-DOBY_STATE_URL=git@github.com:USER/doby-state.git \
-  ./scripts/backup-init.sh
+cd ~/.doby          # your public-doby checkout (wherever it is)
+./scripts/backup-setup.sh
 ```
+It auto-detects `data/` and the vault folder, asks you to confirm the repo URLs,
+re-checks SSH, seeds both repos, and offers to install the cron jobs. Safe to
+re-run.
 
-This `git init`s the vault in place, seeds both repos, and prints the cron lines.
+That's it. The VPS now pushes vault edits every 3 min and backs up identity
+every 15 min.
 
-### 3. Cron (on the VPS)
+---
 
-`crontab -e`:
-
-```cron
-*/3  * * * * DOBY_DATA_DIR=/path/to/data /path/to/public-doby/scripts/sync-vault.sh    >> ~/doby-sync.log   2>&1
-*/15 * * * * DOBY_DATA_DIR=/path/to/data DOBY_STATE_REPO=$HOME/doby-state /path/to/public-doby/scripts/backup-state.sh >> ~/doby-backup.log 2>&1
-```
-
-Vault every 3 min keeps conflict windows small; state every 15 min is plenty.
-
-### 4. Edit notes from your laptop / phone
+## Edit notes from your laptop / phone
 
 ```bash
-git clone git@github.com:USER/doby-vault.git ~/DobyVault
+git clone git@github.com:<user>/doby-vault.git ~/DobyVault
 ```
-
-Open `~/DobyVault` in Obsidian → install the **obsidian-git** community plugin →
-set:
-
+(From your laptop, with your normal GitHub SSH — no deploy key needed there.)
+Open `~/DobyVault` in **Obsidian** → install the **obsidian-git** community
+plugin → set:
 - **Auto pull on startup**: on
-- **Auto commit-and-sync interval**: 1–2 min (pulls then pushes)
-- **Pull updates on startup / before push**: on
+- **Auto commit-and-sync interval**: 1–2 min
+- **Pull before push**: on
 
 Now you and the VPS both pull→edit→push the same repo. Phone: Obsidian mobile +
-obsidian-git works too, or just browse the repo on github.com.
+obsidian-git, or just read the repo on github.com.
 
 ---
 
 ## Conflicts (rare, never silent)
 
 `sync-vault.sh` snapshots local edits, rebases onto the remote, then pushes. If
-the *same lines* were edited on both sides within one sync window, the rebase
-can't auto-merge. The script then:
-
-1. aborts the rebase (working tree untouched),
-2. pushes the divergent local work to `backup/conflict-<timestamp>` on origin,
-3. exits non-zero and logs the branch name.
-
-**Nothing is lost** — `main` keeps the remote version, your VPS-side edits are
-safe on the `backup/conflict-*` branch. Resolve by hand:
-
+the *same lines* changed on both sides within one window, it can't auto-merge.
+The script then aborts the rebase, **pushes your divergent work to
+`backup/conflict-<timestamp>`** on origin, and exits non-zero. Nothing is lost —
+`main` keeps the remote version, your edits are safe on the backup branch.
+Resolve:
 ```bash
-cd "/path/to/data/Documents/Obsidian Vault"
+cd "<vault path>"
 git fetch origin
 git merge origin/backup/conflict-<timestamp>   # fix markers, commit, push
 git push origin --delete backup/conflict-<timestamp>
 ```
-
-Tight cron intervals make this rare. If it nags, shorten the vault interval.
+Tight intervals make this rare. If it nags, shorten the vault cron interval.
 
 ---
 
-## Restore after a crash (same Doby on a fresh box)
+## Restore after a crash (same Doby, fresh box)
 
+After re-deploying Doby and re-doing Step 2 (deploy keys) on the new box:
 ```bash
-cd /path/to/public-doby
-DOBY_DATA_DIR=/path/to/data \
-DOBY_VAULT_URL=git@github.com:USER/doby-vault.git \
-DOBY_STATE_URL=git@github.com:USER/doby-state.git \
+cd ~/.doby
+DOBY_VAULT_URL=git@github-vault:<user>/doby-vault.git \
+DOBY_STATE_URL=git@github-state:<user>/doby-state.git \
   ./scripts/restore-state.sh
 ```
-
 Clones the vault as a live working tree (already wired for sync) and copies the
-identity files back in. It refuses to clobber a non-empty vault unless you pass
-`DOBY_RESTORE_FORCE=1` (which backs the old one aside first). Then:
-
+identity files back. Won't clobber a non-empty vault unless `DOBY_RESTORE_FORCE=1`.
+Then:
 ```bash
 ./scripts/install.sh   # build image if needed
 doby                   # → /model to re-OAuth
-# re-add the cron lines above
+./scripts/backup-setup.sh   # re-wire cron
 ```
+Persona, memories, notes, skins = identical. Only the provider login is fresh.
 
-Persona, memories, notes, skins, skills = identical. Only the provider login is
-fresh.
+---
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| Shell stuck at `>` after pasting a heredoc | Bracketed-paste mangled the quotes. **Ctrl-C**, then use `nano` instead. Optionally disable: `bind 'set enable-bracketed-paste off'`. |
+| `vault dir not found: /path/to/data/...` | You pasted a placeholder path. Use real paths, or just run `./scripts/backup-setup.sh` (it auto-detects). |
+| `SSH auth failed for git@github-vault` | Deploy key missing/not write-enabled, or `~/.ssh/config` alias wrong. Re-check Step 2c/2d, test with `ssh -T git@github-vault`. |
+| `Permission denied (publickey)` on push | Key added without **Allow write access**. Edit the deploy key on GitHub, tick write. |
+| `! [rejected] ... fetch first` on first push | The repo wasn't empty (had README/gitignore). Either delete those on GitHub, or restore instead of seed. |
+| `rsync: command not found` | `sudo apt install -y rsync` on the VPS. |
