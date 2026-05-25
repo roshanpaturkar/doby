@@ -87,8 +87,15 @@ cd ~/.doby          # your public-doby checkout (wherever it is)
 ./scripts/backup-setup.sh
 ```
 It auto-detects `data/` and the vault folder, asks you to confirm the repo URLs,
-re-checks SSH, seeds both repos, and offers to install the cron jobs. Safe to
+checks SSH, seeds both repos, and offers to install the cron jobs. Safe to
 re-run.
+
+**SSH self-heal:** if a repo's SSH isn't working yet, the script guides you —
+but it **never overwrites an existing key**. It only generates one when the file
+is missing, adds the `~/.ssh/config` alias if absent, prints the public key, and
+waits for you to add it as a write deploy key. If SSH already works, your keys
+are left completely untouched. So Step 2 can be as little as creating the repos
+— the script handles the rest on first run.
 
 That's it. The VPS now pushes vault edits every 3 min and backs up identity
 every 15 min.

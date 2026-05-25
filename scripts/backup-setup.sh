@@ -41,6 +41,43 @@ ssh_ok() { # ssh_ok host -> 0 if GitHub auth works
     | grep -qi "successfully authenticated"
 }
 
+ensure_alias() { # host keyfile -> add an ~/.ssh/config block iff absent
+  local host="$1" key="$2"
+  mkdir -p "$HOME/.ssh"; touch "$HOME/.ssh/config"; chmod 700 "$HOME/.ssh"
+  grep -qE "^[[:space:]]*Host[[:space:]]+${host}([[:space:]]|\$)" "$HOME/.ssh/config" && return 0
+  printf '\nHost %s\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/%s\n  IdentitiesOnly yes\n' \
+    "$host" "$key" >> "$HOME/.ssh/config"
+  chmod 600 "$HOME/.ssh/config"
+  ok "added SSH alias '${host}' → ~/.ssh/${key}"
+}
+
+# Guided, idempotent SSH access. If auth already works, keys are left ALONE.
+# Only on failure does it help — and it NEVER overwrites an existing key,
+# it only generates one when the file is missing.
+ensure_ssh_access() { # host role(vault|state)
+  local host="$1" role="$2" key="doby_${2}"
+  if ssh_ok "git@${host}"; then ok "auth ok → ${host} (keys untouched)"; return 0; fi
+  warn "SSH to ${host} not working yet — guided setup (existing keys are NOT overwritten)"
+  case "$host" in
+    github-*) ;;  # we manage a dedicated per-repo key for github-* aliases
+    *) die "auth failed for ${host} and it's not a github-* alias — fix the deploy key/config by hand, then re-run." ;;
+  esac
+  ensure_alias "$host" "$key"
+  if [ -f "$HOME/.ssh/${key}" ]; then
+    info "key ~/.ssh/${key} already exists — keeping it (not regenerating)"
+  else
+    ssh-keygen -t ed25519 -f "$HOME/.ssh/${key}" -N "" -C "doby-${role}" >/dev/null
+    ok "generated ~/.ssh/${key}"
+  fi
+  printf "\n  ${c_b}Add this as a WRITE deploy key on the doby-%s repo:${c_x}\n" "$role"
+  printf "  ${c_d}GitHub → repo → Settings → Deploy keys → Add → tick 'Allow write access'${c_x}\n\n"
+  sed 's/^/    /' "$HOME/.ssh/${key}.pub"
+  printf "\n"
+  read -r -p "  ${c_y}?${c_x} Press Enter once it's added on GitHub to re-check... " _
+  ssh_ok "git@${host}" && ok "auth ok → ${host}" \
+    || die "still failing for ${host} — confirm the key is on the repo WITH write access, then re-run."
+}
+
 printf "${c_g}${c_b}🧦 Doby backup setup${c_x}\n"
 info "checkout: $REPO_DIR"
 
@@ -82,8 +119,9 @@ hr "3. SSH preflight"
 # ---------------------------------------------------------------------------
 vhost="$(printf '%s' "$VAULT_URL" | sed -E 's/^git@([^:]+):.*/\1/')"
 shost="$(printf '%s' "$STATE_URL" | sed -E 's/^git@([^:]+):.*/\1/')"
-ssh_ok "git@${vhost}" && ok "auth ok → ${vhost}" || die "SSH auth failed for git@${vhost}. Check the deploy key + ~/.ssh/config. Test: ssh -T git@${vhost}"
-ssh_ok "git@${shost}" && ok "auth ok → ${shost}" || die "SSH auth failed for git@${shost}. Check the deploy key + ~/.ssh/config. Test: ssh -T git@${shost}"
+# Working keys are left untouched; only missing access triggers guided setup.
+ensure_ssh_access "$vhost" vault
+ensure_ssh_access "$shost" state
 
 # ---------------------------------------------------------------------------
 hr "4. Seed doby-vault (bidirectional)"
