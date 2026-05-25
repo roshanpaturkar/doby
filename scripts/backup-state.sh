@@ -47,12 +47,15 @@ LOCK="${TMPDIR:-/tmp}/doby-backup-state.lock"
 mkdir "$LOCK" 2>/dev/null || { log "another run in progress; skipping"; exit 0; }
 trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT
 
-# Mirror dirs (rsync --delete keeps repo == source; exclude lock files).
+# Mirror a dir so the repo copy == source (portable cp, no rsync dependency).
+# Wipe-then-copy gives --delete semantics; .lock files are dropped after.
 mirror_dir() {
   local src="$1" dst="$2"
   [ -d "$src" ] || return 0
+  rm -rf "$dst"
   mkdir -p "$dst"
-  rsync -a --delete --exclude='*.lock' "$src/" "$dst/"
+  cp -R "$src/." "$dst/"
+  find "$dst" -type f -name '*.lock' -delete 2>/dev/null || true
 }
 mirror_file() {
   local src="$1" dst="$2"

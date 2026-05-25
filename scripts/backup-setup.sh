@@ -195,14 +195,20 @@ git remote add origin "$STATE_URL"
 ensure_identity
 printf '%s\n' '*.lock' '.DS_Store' > .gitignore
 
-# Populate via the same mirror cron uses, then push.
+# Populate via the same mirror cron uses (output visible so failures surface).
 DOBY_DATA_DIR="$DATA" DOBY_STATE_REPO="$STATE" "$REPO_DIR/scripts/backup-state.sh" \
-  >/dev/null 2>&1 || true   # backup-state pushes; if remote empty it sets nothing upstream yet
+  || warn "backup-state mirror reported an issue — check the output above"
 git add -A
 git diff --cached --quiet || git commit -q -m "seed state $(ts)"
 git branch -M main
 git push -q -u origin main 2>/dev/null || git push -q origin HEAD:main
-ok "state seeded + pushed"
+# Sanity: a real backup must contain more than just .gitignore.
+if [ -z "$(git ls-files | grep -v '^\.gitignore$' || true)" ]; then
+  warn "state repo looks EMPTY (only .gitignore). The mirror copied nothing —"
+  warn "check that data/memories, SOUL.md, config.yaml exist under: $DATA"
+else
+  ok "state seeded + pushed ($(git ls-files | wc -l | tr -d ' ') files)"
+fi
 
 # ---------------------------------------------------------------------------
 hr "6. Cron"

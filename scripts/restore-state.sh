@@ -57,7 +57,7 @@ copy_in() {
   local src="$1" dst="$2"
   [ -e "$src" ] || return 0
   if [ -d "$src" ]; then
-    mkdir -p "$dst"; rsync -a "$src/" "$dst/"
+    mkdir -p "$dst"; cp -R "$src/." "$dst/"
   else
     cp -p "$src" "$dst"
   fi

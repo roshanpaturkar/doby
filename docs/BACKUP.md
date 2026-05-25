@@ -167,4 +167,5 @@ Persona, memories, notes, skins = identical. Only the provider login is fresh.
 | `SSH auth failed for git@github-vault` | Deploy key missing/not write-enabled, or `~/.ssh/config` alias wrong. Re-check Step 2c/2d, test with `ssh -T git@github-vault`. |
 | `Permission denied (publickey)` on push | Key added without **Allow write access**. Edit the deploy key on GitHub, tick write. |
 | `! [rejected] ... fetch first` on first push | The repo wasn't empty (had README/gitignore). Either delete those on GitHub, or restore instead of seed. |
-| `rsync: command not found` | `sudo apt install -y rsync` on the VPS. |
+| `Author identity unknown` | No git identity on the box. The scripts now auto-set `Doby <doby@host.local>` when none exists; pull the latest and re-run. |
+| `doby-state` only has `.gitignore` | Old bug (rsync missing). Fixed — the mirror uses plain `cp` now. Re-run `./scripts/backup-setup.sh` to populate it. |
